@@ -1,5 +1,5 @@
-import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeEventEmitter, NativeModules, Platform } from 'react-native';
 import GoogleSheetsService from './GoogleSheetsService';
 
 interface YapeNotification {
@@ -10,6 +10,7 @@ interface YapeNotification {
 }
 
 class NotificationService {
+  [x: string]: any;
   private static instance: NotificationService;
   private eventEmitter: NativeEventEmitter;
   private googleSheets: GoogleSheetsService;

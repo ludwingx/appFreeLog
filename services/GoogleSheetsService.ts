@@ -12,13 +12,29 @@ class GoogleSheetsService {
   private static instance: GoogleSheetsService;
   private config: SheetConfig | null = null;
 
-  private constructor() {}
+  private constructor() {
+    this.loadConfigFromStorage(); // Intentar cargar la configuración al instanciar
+  }
 
   public static getInstance(): GoogleSheetsService {
     if (!GoogleSheetsService.instance) {
       GoogleSheetsService.instance = new GoogleSheetsService();
     }
     return GoogleSheetsService.instance;
+  }
+
+  // Nueva función para cargar la configuración desde AsyncStorage
+  private async loadConfigFromStorage() {
+    try {
+      const storedConfig = await AsyncStorage.getItem('google_sheets_config');
+      if (storedConfig) {
+        this.config = JSON.parse(storedConfig);
+        console.log('Google Sheets config loaded from storage:', this.config);
+      }
+    } catch (error) {
+      console.error('Error loading Google Sheets config from storage:', error);
+      // No relanzar el error aquí para no interrumpir el flujo si es solo un fallo de carga inicial
+    }
   }
 
   public async initialize(clientId: string, spreadsheetId: string, sheetName: string) {
@@ -35,6 +51,7 @@ class GoogleSheetsService {
       
       // Guardar la configuración en AsyncStorage
       await AsyncStorage.setItem('google_sheets_config', JSON.stringify(this.config));
+      console.log('Google Sheets config saved and initialized:', this.config);
       
       if (Platform.OS === 'web') {
         // En web, simplemente guardamos la configuración sin intentar iniciar sesión
@@ -69,6 +86,9 @@ class GoogleSheetsService {
   }
 
   public async appendRow(values: string[]) {
+    if (!this.config) {
+      await this.loadConfigFromStorage(); // Intentar cargar si no está configurado
+    }
     if (!this.config) {
       throw new Error('Google Sheets service not initialized');
     }
@@ -121,6 +141,9 @@ class GoogleSheetsService {
   }
 
   public async getSheetData() {
+    if (!this.config) {
+      await this.loadConfigFromStorage(); // Intentar cargar si no está configurado
+    }
     if (!this.config) {
       throw new Error('Google Sheets service not initialized');
     }

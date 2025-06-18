@@ -3,9 +3,10 @@ import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import GoogleSheetsService from '@/services/GoogleSheetsService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
-import { FlatList, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 
 const googleSheets = GoogleSheetsService.getInstance();
 
@@ -16,10 +17,17 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // Verificar si hay configuración guardada
+        const config = await AsyncStorage.getItem('google_sheets_config');
+        if (!config) {
+          throw new Error('Por favor configura las credenciales de Google Sheets primero');
+        }
+        
         const sheetData = await googleSheets.getSheetData();
         setData(sheetData);
       } catch (error) {
         console.error(error);
+        Alert.alert('Error', error instanceof Error ? error.message : 'Error al cargar datos');
       } finally {
         setLoading(false);
       }

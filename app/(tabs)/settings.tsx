@@ -29,15 +29,26 @@ export default function SettingsScreen() {
       console.error('Error loading configuration:', error);
     }
   };
+
   const loadNotificationCount = async () => {
     try {
-      const storedNotifications = await notificationService.getAllNotifications(); // Get notifications using public method
+      const storedNotifications = await notificationService.getAllNotifications();
       setNotificationCount(storedNotifications?.length || 0);
     } catch (error) {
       console.error('Error al cargar las notificaciones:', error);
     }
   };
-  
+
+  const testConnection = async () => {
+    try {
+      await notificationService.initializeGoogleSheets(clientId, spreadsheetId, sheetName);
+      const testData = await notificationService.getSheetData(); // Asegúrate de que este método exista
+      Alert.alert('Éxito', 'Configuración guardada y conexión verificada correctamente');
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo verificar la conexión: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  };
+
   const handleSave = async () => {
     if (!clientId || !spreadsheetId || !sheetName) {
       Alert.alert('Error', 'Todos los campos son requeridos');
@@ -45,23 +56,21 @@ export default function SettingsScreen() {
     }
 
     try {
-      if (Platform.OS === 'web') {
-        // En web, simplemente guardamos la configuración
-        await notificationService.initializeGoogleSheets(clientId, spreadsheetId, sheetName);
+      const success = await notificationService.initializeGoogleSheets(clientId, spreadsheetId, sheetName);
+
+      if (success || Platform.OS === 'web') {
         setIsConfigured(true);
-        Alert.alert(
-          'Información', 
-          'La configuración se ha guardado. Ten en cuenta que la integración completa con Google Sheets solo está disponible en dispositivos móviles. En la versión web, los datos se almacenarán localmente.'
-        );
-      } else {
-        // En móvil, verificamos la autenticación
-        const success = await notificationService.initializeGoogleSheets(clientId, spreadsheetId, sheetName);
-        if (success) {
-          setIsConfigured(true);
-          Alert.alert('Éxito', 'Configuración de Google Sheets guardada y verificada correctamente');
+
+        if (Platform.OS !== 'web') {
+          await testConnection();
         } else {
-          Alert.alert('Error', 'No se pudo inicializar Google Sheets. Por favor, verifica las credenciales.');
+          Alert.alert(
+            'Información',
+            'La configuración se ha guardado. Ten en cuenta que la integración completa con Google Sheets solo está disponible en dispositivos móviles. En la versión web, los datos se almacenarán localmente.'
+          );
         }
+      } else {
+        Alert.alert('Error', 'No se pudo inicializar Google Sheets. Por favor, verifica las credenciales.');
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo guardar la configuración: ' + (error instanceof Error ? error.message : 'Error desconocido'));
@@ -72,25 +81,25 @@ export default function SettingsScreen() {
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <ThemedText style={styles.title}>Configuración de Google Sheets</ThemedText>
-        
+
         {isConfigured && (
           <ThemedText style={styles.statusText}>✅ Google Sheets está configurado y activo</ThemedText>
         )}
-        
+
         <TextInput
           style={styles.input}
           placeholder="Client ID"
           value={clientId}
           onChangeText={setClientId}
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder="Spreadsheet ID"
           value={spreadsheetId}
           onChangeText={setSpreadsheetId}
         />
-        
+
         <TextInput
           style={styles.input}
           placeholder="Nombre de la Hoja"
@@ -98,8 +107,8 @@ export default function SettingsScreen() {
           onChangeText={setSheetName}
         />
 
-        <TouchableOpacity 
-          style={[styles.button, isConfigured && styles.updateButton]} 
+        <TouchableOpacity
+          style={[styles.button, isConfigured && styles.updateButton]}
           onPress={handleSave}
         >
           <ThemedText style={styles.buttonText}>
@@ -110,13 +119,13 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <ThemedText style={styles.title}>Gestión de Notificaciones</ThemedText>
-        
+
         <ThemedText style={styles.infoText}>
           Notificaciones almacenadas: {notificationCount}
         </ThemedText>
-        
-        <TouchableOpacity 
-          style={[styles.button, styles.dangerButton]} 
+
+        <TouchableOpacity
+          style={[styles.button, styles.dangerButton]}
           onPress={async () => {
             try {
               await notificationService.clearNotifications();
@@ -135,7 +144,6 @@ export default function SettingsScreen() {
   );
 }
 
-// Agregar estos estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -177,9 +185,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#4CAF50',
     marginBottom: 16,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   updateButton: {
-    backgroundColor: '#2196F3'
-  }
+    backgroundColor: '#2196F3',
+  },
 });
