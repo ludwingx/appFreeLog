@@ -1,12 +1,49 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import GoogleSheetsService from '@/services/GoogleSheetsService';
+import { Image } from 'expo-image';
+import { useEffect, useState } from 'react';
+import { FlatList, StyleSheet, View } from 'react-native';
+
+const googleSheets = GoogleSheetsService.getInstance();
 
 export default function HomeScreen() {
+  const [data, setData] = useState<string[][]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const sheetData = await googleSheets.getSheetData();
+        setData(sheetData);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <ParallaxScrollView
+        headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+        headerImage={
+          <Image
+            source={require('@/assets/images/partial-react-logo.png')}
+            style={styles.reactLogo}
+          />
+        }
+      >
+        <ThemedText>Cargando datos...</ThemedText>
+      </ParallaxScrollView>
+    );
+  }
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -15,41 +52,38 @@ export default function HomeScreen() {
           source={require('@/assets/images/partial-react-logo.png')}
           style={styles.reactLogo}
         />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">¡Bienvenido!</ThemedText>
         <HelloWave />
       </ThemedView>
+
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
+        <ThemedText>Registros recientes:</ThemedText>
+        {data.length > 0 && (
+          <View style={styles.tableContainer}>
+            {/* Encabezados */}
+            <View style={styles.headerRow}>
+              <ThemedText style={styles.headerCell}>Fecha</ThemedText>
+              <ThemedText style={styles.headerCell}>Mensaj</ThemedText>
+              <ThemedText style={styles.headerCell}>Dominio</ThemedText>
+            </View>
+            
+            {/* Filas de datos (omitimos la primera fila que son los encabezados) */}
+            <FlatList
+              data={data.slice(1)}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <View style={styles.dataRow}>
+                  <ThemedText style={styles.dataCell}>{item[0]}</ThemedText>
+                  <ThemedText style={styles.dataCell}>{item[1]}</ThemedText>
+                  <ThemedText style={styles.dataCell}>{item[2]}</ThemedText>
+                </View>
+              )}
+            />
+          </View>
+        )}
       </ThemedView>
     </ParallaxScrollView>
   );
@@ -71,5 +105,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  tableContainer: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 5,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f0f0',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+  },
+  headerCell: {
+    flex: 1,
+    fontWeight: 'bold',
+  },
+  dataRow: {
+    flexDirection: 'row',
+    padding: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  dataCell: {
+    flex: 1,
   },
 });
